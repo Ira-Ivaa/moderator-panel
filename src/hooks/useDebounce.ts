@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 /**
  * TODO (задача 2): реализуйте хук debounce.
  *
@@ -7,5 +9,14 @@
  */
 export function useDebounce<T>(value: T, delay: number): T {
   // Заглушка: сейчас значение возвращается сразу, без задержки.
-  return value;
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
 }

@@ -1,5 +1,7 @@
-import { useState, type FormEvent } from 'react';
-import type { Comment } from '../types';
+import { useState, type FormEvent } from "react";
+import type { Comment } from "../types";
+import { useMutation } from "../hooks/useMutation";
+import { endpoints } from "../api/endpoints";
 
 type CommentFormProps = {
   postId: number;
@@ -7,16 +9,18 @@ type CommentFormProps = {
 };
 
 export function CommentForm({ postId, onCreated }: CommentFormProps) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [body, setBody] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [body, setBody] = useState("");
 
   // TODO (задача 5.1): подключите useMutation<Comment> для POST-запроса
   // на endpoints.comments. Уберите заглушки ниже и возьмите значения из хука.
-  const isLoading = false;
-  const error: string | null = null;
+  const { isLoading, error, execute } = useMutation<Comment>(
+    endpoints.comments,
+  );
 
-  const isValid = name.trim() !== '' && email.trim() !== '' && body.trim() !== '';
+  const isValid =
+    name.trim() !== "" && email.trim() !== "" && body.trim() !== "";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -26,6 +30,14 @@ export function CommentForm({ postId, onCreated }: CommentFormProps) {
     // 2. если сервер вернул комментарий -- передайте его в onCreated
     //    и очистите поля формы;
     // 3. если вернулся null -- поля не очищайте, ошибку покажет разметка ниже.
+    const created = await execute({ postId, name, email, body });
+
+    if (created) {
+      onCreated(created);
+      setName("");
+      setEmail("");
+      setBody("");
+    }
   }
 
   return (
@@ -34,25 +46,25 @@ export function CommentForm({ postId, onCreated }: CommentFormProps) {
       <input
         className="input"
         value={name}
-        onChange={e => setName(e.target.value)}
+        onChange={(e) => setName(e.target.value)}
         placeholder="Тема"
       />
       <input
         className="input"
         type="email"
         value={email}
-        onChange={e => setEmail(e.target.value)}
+        onChange={(e) => setEmail(e.target.value)}
         placeholder="Email"
       />
       <textarea
         className="input"
         rows={3}
         value={body}
-        onChange={e => setBody(e.target.value)}
+        onChange={(e) => setBody(e.target.value)}
         placeholder="Текст комментария"
       />
       <button type="submit" className="button" disabled={!isValid || isLoading}>
-        {isLoading ? 'Отправка...' : 'Отправить'}
+        {isLoading ? "Отправка..." : "Отправить"}
       </button>
       {error && <p className="error-text">{error}</p>}
     </form>

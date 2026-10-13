@@ -1,3 +1,5 @@
+import { useCallback, useState, useEffect } from "react";
+
 export type FetchState<T> = {
   data: T | null;
   isLoading: boolean;
@@ -25,12 +27,54 @@ export type FetchState<T> = {
  * и добавьте его в зависимости useEffect.
  */
 export function useFetch<T>(url: string): FetchState<T> {
-  // Заглушка, чтобы проект собирался. Замените её своей реализацией.
+  const [data, setData] = useState<T | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<number | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function load() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        setStatus(null);
+        setData(null);
+
+        const response = await fetch(url, { signal: controller.signal });
+        setStatus(response.status);
+
+        if (!response.ok) {
+          throw new Error(`Ошибка ${response.status}: ${response.statusText}`);
+        }
+
+        const result: T = await response.json();
+        setData(result);
+      } catch (err) {
+        if (err instanceof Error && err.name !== "AbortError") {
+          setError(err.message);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    load();
+
+    return () => controller.abort();
+  }, [url, retryCount]);
+  const refetch = useCallback(() => {
+    setRetryCount((c) => c + 1);
+  }, []);
   return {
-    data: null,
-    isLoading: false,
-    error: null,
-    status: null,
-    refetch: () => {},
+    data,
+    isLoading,
+    error,
+    status,
+    refetch,
   };
 }
